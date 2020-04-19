@@ -1,0 +1,53 @@
+<html>
+  <head>
+    <title>WebShell</title>
+
+    <script src="jquery-1.7.1.min.js"></script>
+    <script src="jquery.mousewheel-min.js"></script>
+    <script src="jquery.terminal.min.js"></script>
+    <link href="jquery.terminal.css" rel="stylesheet"/>
+    <script src="https://unpkg.com/js-polyfills/keyboard.js"></script>
+  </head>
+  <body style="padding: 0; margin: 0;">
+    <script>
+      jQuery(document).ready(function($) {
+        $('body').terminal(function(command, term) {
+          if(!command){ return; }
+
+          shellCommands = ['help', 'clear']
+
+          if(shellCommands.indexOf(command) === -1) {
+            term.pause();
+            $.post('/shell', {command: command}).then(function(response) {
+              data = JSON.parse(response);
+
+              term.echo(data.message).resume();
+            });
+          } else {
+            switch(command) {
+              case 'help':
+                term.echo('This is an IRB-like webshell being executed in the http server process. Be careful. \n\nIt will execute ruby code.\n\nLimitations: \n\n\t- It does not support multiline commands, so be sure of placing it all in one line \n\nAvailable commands: \n\n\thelp\n\tclear\n');
+                break;
+              case 'clear':
+                term.clear('');
+                break;
+              default:
+                term.echo('method not implemented in the webshell');
+            }
+          }
+        }, {
+          <% prompt = 'irb(http env)> ' %>
+          <% greeting = 'This is an IRB-like webshell being executed in the http server process. Be careful. You can type `help` for more info.' %>
+          prompt: '<%= prompt %>',
+          greetings: <% if $commands.any? %>
+          '<%= greeting %>\n<%= $commands.map do |c|
+            CGI.escapeHTML("#{prompt}#{c[:command]}") + '\n' + CGI.escapeHTML(c[:output][:message])
+          end.join('\n') %>'
+          <% else %>
+            '<%= greeting %>'
+          <% end %>
+        });
+      });
+    </script>
+  </body>
+</html>
